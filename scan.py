@@ -33,52 +33,44 @@ def connect(deviceaddr):
             deviceHandle.connect(True, 'public','low')
             break
         except Exception,e:
+            # We have a bunch of RuntimeErrors raised for various reasons by the GATTLib library -- lets handle those, then maybe fork GATTLib and get those to be more specific
+            if type(e) == RuntimeError:
+                
+                if e.message == "Channel or attrib not ready":
+                    if deviceHandle.is_connected():
+                        print "NO, WAIT!"
+                    break # i don't think we can win
+                    #print 'w'
+                    #pdb.set_trace()
+                    #TODO: maybe see if it's connected or not?
+                    #flag += 1 # we don't want to get stuck here.
+                    #continue
+
+                elif e.message == "Already connecting or connected":
+                    if deviceHandle.is_connected():
+                        break
+                    else:
+                        time.sleep(3)
+                        print '\t Waiting for response to connection...'
+                    continue
+
+                else:
+                    #errnum = int(e.message.split()[-1][1:-1]) #remove the ( and ) from the error number
+                    time.sleep(1)
+                    print '!!!' + e.message
+                    continue
+
             print e
             flag += 1
     return deviceHandle
         
-    #device = GATTRequester(device)
-    #d = None
-    #while d is None:
-    #    try:
-    #        GATTRequester(deviceaddr, False, args.talk_interface)
-    #    except RuntimeError,e :
-    #        time.sleep(5)
-    #        print e
-    #        continue
-    #return GATTRequester(deviceaddr)
-
-    #d = None
-    #numtimes = 0
-    #while numtimes < 5:
-    #    try:
-    #        d = GATTRequester(deviceaddr, False, args.talk_interface)
-    #        if d is not None:
-    #            d.connect()
-    #            derp =d 
-    #            pdb.set_trace()
-    #            print "\tconnected"
-    #            return d
-    #    except Exception, e:
-    #        print e
-    #        print "\tRetry connection"
-    #        time.sleep(1)
-    #        numtimes += 1
-    #if d == None:
-    #    print "\tcouldn't connect"
-    #return d
-
 def enumerate(address):
     """
     Attempts to discover all characteristics and dump all values from the device
     device( services( charactaristics( values )))
     """
-    #device = GATTRequester(device)
     device = connect(address)
-    #if device == None:
-    #    time.sleep(1)
-    #    return
-    #time.sleep(1)
+
     try:
         chars = device.discover_characteristics()
         print "\t Device characteristics:" + str(chars)
@@ -131,14 +123,13 @@ def lookup(mac):
     else:
         return mac
 
-#'5C:31:3E:54:2F:FB'
 scanned_list = []
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--oui', action='store', dest='ouifile', required=False, type=str, default='oui.txt')
     parser.add_argument('-l', '--logfile', action="store", dest='logfile', required=True, type=str, default='log.txt')
     parser.add_argument('-i', '--listen_interface', action="store", dest='listen_interface', required=False, type=str, default="hci0")
-    parser.add_argument('-t', '--talk_interface', action="store", dest='talk_interface', required=False, type=str, default="hci1")
+    #parser.add_argument('-t', '--talk_interface', action="store", dest='talk_interface', required=False, type=str, default="hci1")
     #TODO: add database support?
     args = parser.parse_args()
 
