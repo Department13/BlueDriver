@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import bluetooth.ble
 import json
 import time
@@ -38,7 +39,7 @@ def connect(deviceaddr):
                 
                 if e.message == "Channel or attrib not ready":
                     if deviceHandle.is_connected():
-                        print "NO, WAIT!"
+                        if args.debug == True: print "Device error"
                     break # i don't think we can win
                     #print 'w'
                     #pdb.set_trace()
@@ -51,13 +52,13 @@ def connect(deviceaddr):
                         break
                     else:
                         time.sleep(3)
-                        print '\t Waiting for response to connection...'
+                        if args.debug == True: print '\t Waiting for response to connection...'
                     continue
 
                 else:
                     #errnum = int(e.message.split()[-1][1:-1]) #remove the ( and ) from the error number
                     time.sleep(1)
-                    print '!!!' + e.message
+                    if args.debug == True: print '!!!' + e.message
                     continue
 
             print e
@@ -127,8 +128,9 @@ scanned_list = []
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--oui', action='store', dest='ouifile', required=False, type=str, default='oui.txt')
-    parser.add_argument('-l', '--logfile', action="store", dest='logfile', required=True, type=str, default='log.txt')
+    parser.add_argument('-l', '--logfile', action="store", dest='logfile', required=False, type=str, default='log.txt')
     parser.add_argument('-i', '--listen_interface', action="store", dest='listen_interface', required=False, type=str, default="hci0")
+    parser.add_argument('-d','--debug', action="store", dest="debug", required=False, type=bool, default=False)
     #parser.add_argument('-t', '--talk_interface', action="store", dest='talk_interface', required=False, type=str, default="hci1")
     #TODO: add database support?
     args = parser.parse_args()
@@ -137,10 +139,14 @@ if __name__ == "__main__":
     try:
         OUI = parseOUI()
     except Exception,e:
-        print e
+        if args.debug == True: print e
         print "OUI could not be parsed - check your OUI file\ncontinuing..."
 
-    outlog = open(args.logfile,'a+')
+    if args.logfile == True:
+        outlog = open(args.logfile,'a+')
+    # if we dont specifically want a log file, then just make a tmpfile and shove it there for now
+    else:
+        outlog = open('/tmp/bluedriver','a+')
 
     print "Looking for devices..."
     service = DiscoveryService(args.listen_interface)
@@ -159,7 +165,7 @@ if __name__ == "__main__":
                     enumerate(address)
                     outlog.write(json.dumps(logline))
         except RuntimeError,e:
-            print "Runtime err:" + str(e)
+            if args.debug == True: print "Runtime err:" + str(e)
             service = DiscoveryService("hci0")
             pass
         except KeyboardInterrupt:
